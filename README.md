@@ -5,7 +5,7 @@ This repo hosts the codes of papers related to targeted pattern mining.
 Java programming language.
 
 ## Running the program
-A simple way is to run MainTestUSRule_saveToFile.java.
+A simple way is to run the java test file.
 
 ## Benchmarks
 - The data format used is the same as in the file data.txt.
