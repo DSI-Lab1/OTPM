@@ -16,7 +16,7 @@ A simple way is to run MainTestUSRule_saveToFile.java.
 ## Citation
 If these articles or codes useful for your project, please refer to
 ```xml
-**TargetUM**
+TargetUM:
 @article{miao2022targetum,
 	title={Targeted high-utility itemset querying},
 	author={Miao, Jinbao and Wan, Shicheng and Gan, Wensheng and Sun, Jiayi and Chen, Jiahui},
