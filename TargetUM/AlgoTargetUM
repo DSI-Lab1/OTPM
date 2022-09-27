@@ -1,0 +1,762 @@
+package TargetUM;
+
+
+import java.io.*;
+import java.util.*;
+
+
+/**
+ * This is an implementation of the "TargetUM Algorithm" for Targeted High-Utility Itemsets querying
+ * as described in the journal article :
+ *
+ *  Targeted high-utility itemset querying
+ *  IEEE Transactions on Artificial Intelligence
+ *
+ * @see TargetUM.UtilityList
+ * @see TargetUM.Element
+ * @author Jinbao Miao 2021
+ */
+public class AlgoTargetUM {
+    /** the maximum memory consumption */
+    public double maxMemory = 0;
+
+    /** the time at which the algorithm started */
+    public long startTimestamp = 0;
+    /** the time at which the algorithm ended */
+    public long endTimestamp = 0;
+
+    /** the total utility value of database */
+    private int totalDBUtility = 0;
+    /** the minimum utility threshold */
+    private int minUtility;
+    /** the targetr minimum utility threshold */
+    private int tarminUtility;
+    /** the number of potential HUIs found */
+    public int candidateCount = 0;
+    /** the number of high-utility itemsets generated */
+    public int huiCount = 0;
+    /** the number of target HUIs */
+    public int TarHUIs = 0;
+
+    /** select the sort order */
+    public int sortSelect = 0;
+
+    /** the number of the visited node */
+    public int nodeCount = 0;
+    /** the sum time of multiple querying */
+    public int totalTimeForAllRuns = 0;
+    /** the sum candidates found of multiple querying */
+    public int totalCandidateCountForAllRuns = 0;
+    /*** the string of targeteditemset*/
+    public StringBuilder tarItemToString;
+    /** Map to remember the TWU of each item */
+    Map<Integer, Long> mapItemToTWU;
+    private Map<Integer, UtilityList> mapItemToUtilityList;
+    /** pair of items,item -- > item, twu; */
+    Map<Integer, Map<Integer, Integer>> mapEUCS;
+
+    /** writer to write the output file */
+    BufferedWriter writer = null;
+
+    /** the debug model */
+    boolean DEBUG = false;
+
+    /**
+     * buffer for storing the current itemset that is mined when performing mining
+     * the idea is to always reuse the same buffer to reduce memory usage.
+     */
+    final int BUFFERS_SIZE = 200;
+    private int[] itemsetBuffer = null;
+    private long[] itemsetiu = null;
+    private long[] itemsetru = null;
+    private long[] itemsetwu = null;
+
+    /**
+     * this class represent an item and its utility in a transaction
+     */
+    class Pair {
+        int item = 0;
+        int utility = 0;
+
+        @Override
+        public String toString() {
+            return "[" + item + "," + utility + "]";
+        }
+    }
+
+    /** utility list of each item with TWU ascending order*/
+    List<UtilityList> listOfUtilLists;
+
+    /** root node */
+    List<Node> singleItemsNodes;
+
+    /************store the head node of item-header table ****************/
+    Map<Integer, Node> mapItemNodes = new HashMap<Integer, Node>();
+
+    /************store the tail node of item-header table ****************/
+    Map<Integer, Node> mapItemLastNode = new HashMap<Integer, Node>();
+
+    /**
+     * Aims to link items with same name formats a chain in trie.
+     * @param item items' mame
+     * @param newNode a new item with the same name inset into trie
+     */
+    private void fixNodeLinks(Integer item, Node newNode) {
+        // index the head node (static)
+        Node headerNode = mapItemNodes.get(item);
+        if (headerNode == null) {
+            mapItemNodes.put(item, newNode);
+        }
+        // index the tail node (dynamic)
+        Node lastNode = mapItemLastNode.get(item);
+        if (lastNode != null) {
+            lastNode.nodeLink = newNode;
+        }
+        mapItemLastNode.put(item, newNode);
+    }
+
+    /**
+     * The trie node
+     */
+    public class Node {
+        /** parameters */
+        int item;
+        /** mark the end of itemset in branch (from up-to-down) */
+        boolean isEnd;
+        /** store the children nodes*/
+        List<Node> children = new ArrayList<Node>(3);
+
+        /** link point to construct item-header table */
+        Node nodeLink = null;
+
+        /** record the parent node of item*/
+        Node parent = null;
+
+        /** store utility value of item*/
+        long sumIutility = 0;
+
+        /** store remaining utility value of item*/
+        long sumRutility = 0;
+
+        /** store twu of item */
+        long twu = 0;
+
+        /** construct method */
+        private Node() {}
+
+        /** construct method */
+        public Node(int item, long sumIutility, long sumRutility, long twu) {
+            this.item = item;
+            this.sumIutility = sumIutility;
+            this.sumRutility = sumRutility;
+            this.twu = twu;
+            this.isEnd = false;
+        }
+    }
+
+    /** binary search parameter */
+    int middle = -1;
+    /**
+     * find out the index of item in tree.
+     * @param list the tree structure
+     * @param item the item's name
+     * @return the index of item in tree
+     */
+    public Node binarySearchForItem(List<Node> list, int item) {
+        // perform a binary search to check if the subset appears in level k-1.
+        middle = 0;
+        int first = 0, last = list.size() - 1;
+
+        // the binary search.
+        while (first <= last) {
+            // divide by 2
+            middle = (first + last) >>> 1;
+            if (compareItems(item, list.get(middle).item) > 0) {
+                // the itemset compared is larger than the subset according to the lexical order.
+                first = middle + 1;
+            } else if (compareItems(item, list.get(middle).item) < 0) {
+                // the itemset compared is smaller than the subset  is smaller according to the lexical order.
+                last = middle - 1;
+            } else {
+                return list.get(middle);
+            }
+        }
+        middle = first;
+        // if we do not find, return null
+        return null;
+    }
+
+    /**
+     * construct some new nodes (items) based on the current itemset, and insert into target querying tree
+     * @param prefixLength the common prefix length of current itemset
+     * @param lastitem the last item of current itemset
+     * @param sumIutility the sum of utility of current itemset
+     * @param sumRutility the sum of remaining utility of current itemset
+     */
+    public void insertHUIinTrie(int prefixLength, int lastitem, int sumIutility, int sumRutility, long twu) {
+        List<Node> listNodes = singleItemsNodes;
+        Node currentNode = null;
+        Node parentNode = null;
+        for (int i = 0; i < prefixLength; i++) {
+            // get the information of item, utility, remaining utility and twu
+            int item = itemsetBuffer[i];
+            long itemsumIu = itemsetiu[i];
+            long itemsumRu = itemsetru[i];
+            long itemtwu = itemsetwu[i];
+            // System.out.println(item + " " + itemsumIu + " " + itemsumRu);
+            currentNode = binarySearchForItem(listNodes, item);
+            // The first time the current path appears, a new node needs to be created
+            if (currentNode == null) {
+                currentNode = new Node(item, itemsumIu, itemsumRu, itemtwu);
+                currentNode.parent = parentNode;
+                listNodes.add(middle, currentNode);
+                fixNodeLinks(item, currentNode);
+            }
+            // update node information
+            parentNode = currentNode;
+            listNodes = currentNode.children;
+        }
+        currentNode = binarySearchForItem(listNodes, lastitem);
+        // The node corresponding to the last item does not exist
+        if (currentNode == null) {
+            currentNode = new Node(lastitem, sumIutility, sumRutility, twu);
+            currentNode.parent = parentNode;
+            listNodes.add(middle, currentNode);
+            fixNodeLinks(lastitem, currentNode);
+            huiCount++;
+        } else {
+            if (currentNode.sumIutility == 0) {
+                huiCount++;
+            }
+            currentNode.sumIutility = sumIutility;
+            currentNode.sumRutility = sumRutility;
+        }
+        currentNode.isEnd = true;
+    }
+
+    // ********************* end of trie ********************************
+
+    /** Default constructor */
+    public AlgoTargetUM() { }
+
+    /**
+     * Run the algorithm
+     * @param input the input file path
+     * @param output the output file path
+     * @param minUtil the minimum utility threshold
+     * @param minUtility_ratio the minUti rate of database utility
+     * @param targetedItemset users specify target itemset
+     * @throws IOException exception if error while writing the file
+     */
+    public void runTargetUM(String input, String output, Integer minUtil, Double minUtility_ratio,
+                             Integer[] targetedItemset, int tarminUtil, int select) throws IOException {
+        // reset parameters
+        maxMemory = 0;
+        candidateCount = 0;
+        huiCount = 0;
+        TarHUIs = 0;
+        // initialize the buffer for storing the current itemset.
+        itemsetBuffer = new int[BUFFERS_SIZE];
+        itemsetiu = new long[BUFFERS_SIZE];
+        itemsetru = new long[BUFFERS_SIZE];
+        itemsetwu = new long[BUFFERS_SIZE];
+        // if is the first run algorithm, initial all parameters;
+        boolean firstTime = (mapEUCS == null);
+        if (firstTime) {
+            mapEUCS = new HashMap<Integer, Map<Integer, Integer>>();
+            listOfUtilLists = new ArrayList<UtilityList>();
+            mapItemToUtilityList = new HashMap<Integer, UtilityList>();
+            singleItemsNodes = new ArrayList<Node>(100);
+            totalDBUtility = 0;
+        }
+        writer = new BufferedWriter(new FileWriter(output));
+
+        // else we continue to process.
+        startTimestamp = System.currentTimeMillis();
+        // because parameter itemsetUtilityLists already exist.
+
+        sortSelect = select;
+
+        if (mapItemToTWU == null) {
+            mapItemToTWU = new HashMap<Integer, Long>();
+        }
+
+        // We scan the database a first time to calculate the TWU of each item.
+        BufferedReader myInput = null;
+        String thisLine;
+        if(firstTime){
+            try {
+                // prepare the object for reading the file.
+                myInput = new BufferedReader(new InputStreamReader(new FileInputStream(new File(input))));
+                // for each line (transaction) until the end of file.
+                while ((thisLine = myInput.readLine()) != null) {
+                    // if the line is  a comment, is  empty or is a
+                    // kind of metadata.
+                    if (thisLine.isEmpty() == true || thisLine.charAt(0) == '#' || thisLine.charAt(0) == '%' || thisLine.charAt(0) == '@') {
+                        continue;
+                    }
+                    // split the transaction according to the : separator.
+                    String split[] = thisLine.split(":");
+                    // the first part is the list of items.
+                    String items[] = split[0].split(" ");
+                    // the second part is the transaction utility.
+                    long transactionUtility = Integer.parseInt(split[1]);
+
+                    // for each item, we add the transaction utility to its TWU.
+                    for (int i = 0; i < items.length; i++) {
+                        // convert item to integer.
+                        Integer item = Integer.parseInt(items[i]);
+                        // get the current TWU of that item.
+                        Long twu = mapItemToTWU.get(item);
+                        // add the utility and utility list of the item
+                        // in the current transaction to its twu.
+                        if (twu == null) {
+                            UtilityList uList = new UtilityList(item);
+                            mapItemToUtilityList.put(item, uList);
+                            listOfUtilLists.add(uList);
+                            twu = transactionUtility;
+                        } else {
+                            twu = twu + transactionUtility;
+                        }
+
+                        mapItemToTWU.put(item, twu);
+                    }
+                    // compute the total utility of database
+                    totalDBUtility += transactionUtility;
+                }
+            } catch (Exception e) {
+                // catches exception if error while reading the input file
+                e.printStackTrace();
+            } finally {
+                // close the file safely
+                if (myInput != null) {
+                    myInput.close();
+                }
+            }
+
+            if (DEBUG) { System.out.println("mapItemToTWU = " + mapItemToTWU); }
+
+            // set the minimum utility threshold value
+            if (minUtility_ratio > 0.0) {
+                minUtility = (int) Math.ceil((double) totalDBUtility * minUtility_ratio);
+            } else {
+                minUtility = minUtil;
+            }
+            System.out.println(" Input file: " + input.toString());
+            System.out.println(" tarHUISubCount = " + targetedItemset.length);
+            System.out.println(" targt pattern = " + Arrays.toString(targetedItemset));
+            System.out.println(" Input file: " + input.toString());
+            System.out.println(" minUtility: " + minUtility);
+            // target minimal utility threshold
+            tarminUtility = tarminUtil;
+            // sort utility-list by alphabet order
+            Collections.sort(listOfUtilLists, new Comparator<UtilityList>() {
+                @Override
+                public int compare(UtilityList o1, UtilityList o2) {
+                    return compareItems(o1.item, o2.item);
+                }
+            });
+
+            /*for(UtilityList x : listOfUtilLists){
+                System.out.println(x.item + " : " + mapItemToTWU.get(x.item));
+            }*/
+            // read input file again, construct utility-list structure of each item (after pruning)
+            try {
+                // prepare the object for reading the file.
+                myInput = new BufferedReader(new InputStreamReader(new FileInputStream(new File(input))));
+                // the ID of each transaction.
+                int tid = 0;
+                // for each line (transaction) until the end of file.
+                while ((thisLine = myInput.readLine()) != null) {
+                    // if the line is  a comment, is  empty or is a
+                    // kind of metadata.
+                    if (thisLine.isEmpty() == true || thisLine.charAt(0) == '#' || thisLine.charAt(0) == '%' || thisLine.charAt(0) == '@') {
+                        continue;
+                    }
+
+                    // split the transaction according to the : separator.
+                    String split[] = thisLine.split(":");
+                    // the first part is the list of items.
+                    String items[] = split[0].split(" ");
+                    // the second part is the transaction utility.
+                    String utilityValues[] = split[2].split(" ");
+
+                    int remainingUtility = 0;
+                    int newTWU = 0;
+                    List<Pair> revisedTransaction = new ArrayList<Pair>();
+                    // for each item, we add the transaction utility to its TWU.
+                    for (int i = 0; i < items.length; i++) {
+                        Pair pair = new Pair();
+                        pair.item = Integer.parseInt(items[i]);
+                        pair.utility = Integer.parseInt(utilityValues[i]);
+                        // pruning strategy 1: filter out those uninteresting items
+                        if (mapItemToTWU.get(pair.item) >= minUtility) {
+                            revisedTransaction.add(pair);
+                            remainingUtility += pair.utility;
+                        }
+                    }
+                    // sort elements of transaction with alphabet order
+                    Collections.sort(revisedTransaction, new Comparator<Pair>() {
+                        @Override
+                        public int compare(Pair o1, Pair o2) {
+                            return compareItems(o1.item, o2.item);
+                        }
+                    });
+
+                    for (int i = 0; i < revisedTransaction.size(); i++) {
+                        Pair pair = revisedTransaction.get(i);
+                        // record rutil of each item in tansaction and construct utility-list
+                        remainingUtility = remainingUtility - pair.utility;
+                        UtilityList utilityListOfItem = mapItemToUtilityList.get(pair.item);
+                        Element element = new Element(tid, pair.utility, remainingUtility);
+                        utilityListOfItem.addElement(element);
+
+                        Map<Integer, Integer> mapFMAPItem = mapEUCS.get(pair.item);
+                        if(mapFMAPItem == null){
+                            mapFMAPItem =new HashMap<Integer, Integer>();
+                            mapEUCS.put(pair.item, mapFMAPItem);
+                        }
+                        for(int j= i+1;j<revisedTransaction.size();j++){
+                            Pair pairAfter = revisedTransaction.get(j);
+                            Integer twuSum = mapFMAPItem.get(pairAfter.item);
+                            if(twuSum == null){
+                                mapFMAPItem.put(pairAfter.item, newTWU);
+                            }else{
+                                mapFMAPItem.put(pairAfter.item, twuSum + newTWU);
+                            }
+                        }
+                    }
+                    tid++;
+                    // System.out.println("tid = " + tid);
+                }
+            } catch (Exception e) {
+                // catches exception if error while reading the input file。
+                e.printStackTrace();
+            } finally {
+                if (myInput != null) {
+                    myInput.close();
+                }
+            }
+        }
+        // sort target set with ascending TWU order, to fast locate process in branch
+        Arrays.sort(targetedItemset, new Comparator<Integer>() {
+            @Override
+            public int compare(Integer a, Integer b){
+                return compareItems(a, b);
+            }
+        });
+
+        // after sorted, transform target itemsets into String (like [A B C])
+        {
+            tarItemToString = new StringBuilder();
+            tarItemToString.append("[");
+            for(int i = 0; i < targetedItemset.length; i ++) {
+                if(i > 0) { tarItemToString.append(" "); }
+                tarItemToString.append(targetedItemset[i]);
+            }
+            tarItemToString.append("]");
+        }
+        // compute the memory consumption
+        checkMemory();
+        // main process
+        buildHuiTrie(0, null, listOfUtilLists);
+        // save results into file
+        outputAllPrefix(targetedItemset);
+        // compute the memory consumption
+        checkMemory();
+        // close the file
+        writer.close();
+        // compute the runtime consumption
+        endTimestamp = System.currentTimeMillis();
+        totalTimeForAllRuns += (endTimestamp - startTimestamp);
+    }
+
+    /**
+     * record the target HUIs into buffer string.
+     * @param targetedItemset the target HUIs
+     * @throws IOException
+     */
+    public void outputAllPrefix(Integer[] targetedItemset) throws IOException {
+        Node currentNode = null;
+        int lastItem = targetedItemset[targetedItemset.length - 1];
+        Node node = mapItemNodes.get(lastItem);
+
+        while (node != null) {
+            //System.out.println("+++++++");
+            nodeCount ++;
+            StringBuilder buffer = new StringBuilder();
+            // strategies one
+            if (node.sumIutility + node.sumRutility >= tarminUtility) { // start
+                buffer.append(node.item);
+                // Index starts from 0
+                int posToMatch = targetedItemset.length - 2;
+                // travel down-to-up from target querying tree
+                currentNode = node.parent;
+                while (currentNode != null) {
+                    //System.out.println(targetedItemset[posToMatch]);
+                    nodeCount++;
+                    if(posToMatch >= 0){
+                        int X = targetedItemset[posToMatch];
+                        long Y = mapItemToTWU.get(targetedItemset[posToMatch]);
+                        // strategies three
+                        if(sortSelect == 0 && currentNode.twu < Y) {
+                            // means no TWU of suffix nodes will higher than Y (because of ascending order)
+                            break;
+                        } else if(sortSelect == 0 && currentNode.twu == Y && currentNode.item == X) {
+                            // if equal, upward together
+                            posToMatch--;
+                        }
+                        if(sortSelect == 1 && currentNode.twu > Y) {
+                            // means no TWU of suffix nodes will higher than Y (because of ascending order)
+                            break;
+                        } else if(sortSelect == 2 && currentNode.twu == Y && currentNode.item == X) {
+                            // if equal, upward together
+                            posToMatch--;
+                        }
+                        if(sortSelect == 2 && currentNode.item == X) posToMatch --;
+                    }
+                    // record the current node and compare with next node
+                    buffer.append(" ");
+                    buffer.append(currentNode.item);
+                    currentNode = currentNode.parent;
+                }
+                // if true, represents we query the last item of target itemset
+                if (posToMatch == -1) {
+                    //System.out.println("===");
+                    String prefix = buffer.toString();
+                    if(node.sumIutility >= tarminUtility && node.isEnd == true){
+                        TarHUIs++;
+                        writer.write(prefix + " *** #UTIL: " + node.sumIutility + System.lineSeparator());
+                    }
+                    // save all suffix nodes of this branch into file
+                    outputAllSuffix(node.children, prefix);
+                }
+            } //  end
+            node = node.nodeLink;
+        }
+    }
+
+    /**
+     * save all suffix nodes of this branch into file.
+     * @param children the node's children nodes
+     * @param prefix the node's parent nodes
+     * @throws IOException
+     */
+    private void outputAllSuffix(List<Node> children, String prefix) throws IOException {
+        for (Node child : children) {
+            nodeCount ++;
+            String newPrefix = prefix + " " + child.item;
+            // find out a real target HUI
+            if (child.sumIutility >= tarminUtility && child.isEnd == true) {
+                TarHUIs++;
+                writer.write(newPrefix + " *** #UTIL: " + child.sumIutility + System.lineSeparator());
+            }
+            // // strategies two
+            // if there still exist other child nodes, we continue to check whether they are TarHUIs
+            //if (child.children != null && child.sumIutility + child.sumRutility >= tarminUtility) {
+                outputAllSuffix(child.children, newPrefix);
+            //}
+        }
+    }
+
+    /**
+     * This is the recursive method to find all high utility itemsets, and then
+     * find out all target HUIs.
+     * @param prefixLength  This is the current prefix. Initially, it is empty.
+     * @param pUL This is the Utility List of the prefix. Initially, it is empty.
+     * @param ULs The utility lists corresponding to each extension of the prefix.
+     * @throws IOException
+     */
+    private void buildHuiTrie(int prefixLength, UtilityList pUL, List<UtilityList> ULs)
+            throws IOException {
+        // for each extension X of prefix p
+        for (int i = 0; i < ULs.size(); i++) {
+            if (DEBUG) {
+                for (int k = 0; k < ULs.size(); k++) {
+                    UtilityList Z = ULs.get(k);
+                    System.out.print(Z.item + " ");
+                }
+                System.out.println();
+            }
+            UtilityList X = ULs.get(i);
+            String itemset = "";
+            for (int j = 0; j < prefixLength; j++) {
+                itemset = itemset + ":" + itemsetBuffer[j];
+            }
+            itemset = itemset + ":" + X.item;
+            // System.out.println(itemset + ", sumIutilsD = " + X.sumIutilsD);
+
+            // If pX is a high utility itemset.
+            // we save the itemset:  pX
+            int utilityOfX = X.sumIutilsD;
+            long twuOfX = mapItemToTWU.get(X.item);
+            if (utilityOfX >= minUtility) {
+                insertHUIinTrie(prefixLength, X.item, utilityOfX, X.sumRutilsD, twuOfX);
+            }
+
+            // If the sum of the remaining utilities for pX
+            // is higher than minUtility, we explore extensions of pX.
+            // (this is the pruning condition)
+            if (X.sumIutilsD + X.sumRutilsD >= minUtility) {
+                // This list will contain the utility lists of pX extensions.
+                List<UtilityList> exULs = new ArrayList<UtilityList>();
+                // For each extension of p appearing
+                // after X according to the ascending order
+                for (int j = i + 1; j < ULs.size(); j++) {
+                    UtilityList Y = ULs.get(j);
+                    // we construct the extension pXY (candidate)
+                    // and add it to the list of extensions of pX
+                    candidateCount++;
+                    UtilityList temp = construct(pUL, X, Y);
+                    if (temp != null) {
+                        exULs.add(temp);
+                    }
+                }
+                // We create new prefix pX
+                // int[] newPrefix = new int[prefix.length + 1];
+                // System.arraycopy(prefix, 0, newPrefix, 0, prefix.length);
+                itemsetBuffer[prefixLength] = X.item;
+                itemsetiu[prefixLength] = (long)X.sumIutilsD;
+                itemsetru[prefixLength] = (long)X.sumRutilsD;
+                itemsetwu[prefixLength] = (long)twuOfX;
+                // We make a recursive call to discover all itemsets with the prefix pXY
+                buildHuiTrie(prefixLength + 1, X, exULs);
+            }
+        }
+    }
+
+    /**
+     * compare items with TWU ascending order
+     * @param item1 items' name
+     * @param item2 items' name
+     * @return 1, 0 or -1
+     */
+    private int compareItems(Integer item1, Integer item2) {
+        long a = mapItemToTWU.get(item1), b = mapItemToTWU.get(item2);
+
+        int compare = a == b ? 0 : a > b ? 1 : -1;
+
+        // if the same, use the lexical order otherwise use the twu
+        if(sortSelect == 0) return item1 == item2 ? item1 - item2 : compare;
+        else if(sortSelect == 1) return item1 == item2? item1 - item2 : compare * -1;
+        else return item1 - item2;
+    }
+
+    /**
+     * This method constructs the utility list of pXY
+     * @param P the utility list of prefix P.
+     * @param px the utility list of pX
+     * @param py the utility list of pY
+     * @return the utility list of pXY
+     */
+    private UtilityList construct(UtilityList P, UtilityList px, UtilityList py) throws IOException {
+        long totalUtility = px.sumIutilsD + px.sumRutilsD;
+        // create an empty utility list for pXY.
+        UtilityList pxyUL = new UtilityList(py.item);
+        // for each element in the utility list of pX.
+        for (int i = 0; i < px.elementsD.size(); i++) {
+            // do a binary search to find element ey in py with tid = ex.tid.
+            Element ex = px.elementsD.get(i);
+            Element ey = findElementWithTID(py.elementsD, ex.tid);
+            // if the element ey is null.
+            if (ey == null) {
+                totalUtility -= (ex.iutils + ex.rutils);
+                if (totalUtility < minUtility) {
+                    return null;
+                }
+                continue;
+            }
+            // if the prefix p is null
+            if (P == null) {
+                // Create the new element.
+                Element eXY = new Element(ex.tid, ex.iutils + ey.iutils, ey.rutils);
+                // add the new element to the utility list of pXY.
+                pxyUL.addElement(eXY);
+            } else {
+                // find the element in the utility list of p wih the same tid.
+                Element e = findElementWithTID(P.elementsD, ex.tid);
+                if (e != null) {
+                    // Create new extension element (k+1 itemset).
+                    Element eXY = new Element(ex.tid, ex.iutils + ey.iutils - e.iutils, ey.rutils);
+                    // add the new element to the utility list of pXY.
+                    pxyUL.addElement(eXY);
+                }
+            }
+        }
+        // return the utility list of pXY.
+        return pxyUL;
+    }
+
+    /**
+     * Des binary search to find the element with a given tid in an utility list
+     * @param list the utility list
+     * @param tid the tid
+     * @return  the element or null if none has the tid.
+     */
+    private Element findElementWithTID(List<Element> list, int tid) {
+        // perform a binary search to check if  the subset appears in level k-1.
+        int first = 0, last = list.size() - 1;
+        // the binary search.
+        while (first <= last) {
+            // divide by 2
+            int middle = (first + last) >>> 1;
+            if (list.get(middle).tid < tid) {
+                // the itemset compared is larger than the subset according to the lexical order.
+                first = middle + 1;
+            } else if (list.get(middle).tid > tid) {
+                // the itemset compared is smaller than the subset is smaller according to the lexical order.
+                last = middle - 1;
+            } else {
+                return list.get(middle);
+            }
+        }
+        return null;
+    }
+
+    /**
+     *  compute the memory consumption
+     */
+    private void checkMemory() {
+        double currentMemory = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024d / 1024d;
+        // record the maximum memory consumption
+        if (currentMemory > maxMemory) {
+            maxMemory = currentMemory;
+        }
+    }
+
+    /**
+     * Print statistics about the latest execution output panel
+     */
+    public void printStats() throws IOException {
+        System.out.println("============ TargetUM ALGORITHM-STATS ===========");
+        System.out.println(" Execution time: " + (endTimestamp - startTimestamp) / 1000.00 + "s");
+        System.out.println(" Memory: " + String.format("%.2f", maxMemory) + " MB");
+        System.out.println(" TarHUIs found: " + TarHUIs);
+        System.out.println(" HUIs found: " + huiCount);
+        System.out.println(" Candidates count: " + candidateCount);
+        System.out.println(" visited node count: " + nodeCount);
+        System.out.println(" minutil: " + minUtility);
+        System.out.println(" tarminUtil: " + tarminUtility);
+        System.out.println(" target pattern: " + tarItemToString);
+        System.out.println("====================================================");
+        System.out.println("TOTAL DB Utility: " + totalDBUtility);
+        System.out.println("TOIAL CANDIDATEs FOR ALL RUNS: " + totalCandidateCountForAllRuns + " candidates");
+        System.out.println("TOTAL TIME FOR ALL RUNS: " + totalTimeForAllRuns / 1000.00 + "s");
+        System.out.println("====================================================");
+    }
+
+    /**
+     * calculate the memory usage of special object
+     * @param object special object
+     * @return maximum memory usage value
+     * @throws IOException
+     */
+    private double getObjectSize(Object object) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(object);
+        oos.close();
+
+        return (baos.size() / 1024d / 1024d);
+    }
+}
