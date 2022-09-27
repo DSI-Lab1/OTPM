@@ -16,8 +16,8 @@ import java.net.URL;
  */
 public class MainTest_TargetUM {
     public static void main(String[] args) throws IOException {
-        String input = "DB_Utility.txt";
-        String output = ".//TargetUM_output.txt";
+        String input = "data.txt";
+        String output = ".//output.txt";
 
         int minUtil = 5;
         int tarminUtil = minUtil;
