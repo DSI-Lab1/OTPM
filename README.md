@@ -31,4 +31,4 @@ TargetUM:
 
 
 ## Notes
-If there are any questions, please contact me (Email: hgengsen@gmail.com).
+If there are any questions, please contact me.
