@@ -31,4 +31,4 @@ TargetUM:
 
 
 ## Notes
-If there are any questions, please contact me.
+If there are any questions, please contact me (osjbmiao@gmail.com).
