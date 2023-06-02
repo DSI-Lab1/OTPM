@@ -1,4 +1,4 @@
-# TaMP
+# OTPM
 This repo hosts the codes of papers related to targeted pattern mining.
 
 ## Requirements
