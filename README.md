@@ -1,6 +1,6 @@
 # OTPM
-// This repo hosts the codes of papers related to targeted pattern mining. 
-As an important sub-branch of data mining, pattern mining is nowadays applied in various fields such as healthcare, finance, traffic, and shopping basket. In order to obtain useful and concise results of interest to the user, the targeted mining method imposes a query constraint that avoids the generation of irrelevant patterns. So far, researchers have proposed many targeted mining algorithms for different mining tasks. In order to provide relevant researchers with convenient use and learning of targeted pattern mining, a project called OTPM (Open-source of Targeted Pattern Mining) deployed on GitHub is developed, which contains some targeted mining algorithms in recent years. 
+*
+As an important sub-branch of data mining, pattern mining is nowadays applied in various fields such as healthcare, finance, traffic, and shopping basket. In order to obtain useful and concise results of interest to the user, the targeted mining method imposes a query constraint that avoids the generation of irrelevant patterns. So far, researchers have proposed many targeted mining algorithms for different mining tasks. In order to provide relevant researchers with convenient use and learning of targeted pattern mining, a project called OTPM (Open-source of Targeted Pattern Mining) deployed on GitHub is developed, which contains some targeted mining algorithms in recent years.* 
 
 ## Requirements
 Java programming language.
