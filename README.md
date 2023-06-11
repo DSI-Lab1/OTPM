@@ -8,10 +8,17 @@ Java programming language.
 A simple way is to run the java test file.
 
 ## Benchmarks
-- The data format used is the same as in the file data.txt.
+- Sequence data
+- Transaction data
+- Biological sequence
 
 ## Introduction
 - **TargetUM**: The first work for mining high-utility itemsets, which is based on a TP-tree structure.
+- **TaSPM**: 
+- **TaSRM**: 
+- **TUSQ**:
+- **TALENT**:
+- **TaRP**: 
 
 ## Citation
 If these articles or codes useful for your project, please refer to
