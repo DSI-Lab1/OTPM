@@ -20,7 +20,7 @@ A simple way is to run the java test file.
 - **TALENT**: The first work for mining non-overlapping, which is based on a Nettree structure.
 - **TaRP**: The first work for mining rare high-utility patterns, which is based on a modified utility-list structure.
 - **THUIM**: The improved work for mining high-utility itemsets, with the better efficiency than TargetUM.
-- **TMKU**: The work for top-$k$ mining high-utility itemsets.
+- **TMKU**: The work for top-k mining high-utility itemsets.
 
 ## Citation
 If these articles or codes useful for your project, please refer to
