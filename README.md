@@ -14,11 +14,13 @@ A simple way is to run the java test file.
 
 ## Introduction
 - **TargetUM**: The first work for mining high-utility itemsets, which is based on a TP-tree structure.
-- **TaSPM**: 
-- **TaSRM**: 
-- **TUSQ**:
-- **TALENT**:
-- **TaRP**: 
+- **TaSPM**: The first work for mining sequential patterns, which is based on a C-MAP structure.
+- **TaSRM**: The first work for mining sequential rules, which is based on rule expansion pruning.
+- **TUSQ**: The first work for mining sequential patterns, which is based on a target chain structure.
+- **TALENT**: The first work for mining non-overlapping, which is based on a Nettree structure.
+- **TaRP**: The first work for mining rare high-utility patterns, which is based on a modified utility-list structure.
+- **THUIM**: The improved work for mining high-utility itemsets, with the better efficiency than TargetUM.
+- **TMKU**: The work for top-$k$ mining high-utility itemsets.
 
 ## Citation
 If these articles or codes useful for your project, please refer to
