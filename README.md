@@ -15,7 +15,7 @@ A simple way is to run the java test file.
 ## Introduction
 - **TargetUM**: The first work for mining high-utility itemsets, which is based on a TP-tree structure.
 - **TaSPM**: The first work for mining sequential patterns, which is based on a C-MAP structure.
-- **TaSRM**: The first work for mining sequential rules, which is based on rule expansion pruning.
+- **TaSRM**: Several pruning strategies and an optimization are introduced to improve the efficiency of mining target sequential rules.
 - **TUSQ**: The first work for mining sequential patterns, which is based on a target chain structure.
 - **TALENT**: The algorithm based on Nettree structure is designed to mine non-overlapping sequences. Two search methods including breadth-first and depth-first searching are proposed to troubleshoot the generation of patterns.
 - **TaRP**: The first work for mining rare high-utility patterns, which is based on a modified utility-list structure.
