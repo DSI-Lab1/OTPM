@@ -13,8 +13,8 @@ A simple way is to run the java test file.
 - Biological sequence
 
 ## Introduction
-- **TargetUM**: A tree-based algorithm known as Target-based high-Utility iteMset querying using (TargetUM) is proposed. The algorithm uses a lexicographic querying tree and three effective pruning strategies to improve the mining efficiency.
-- **TaSPM**: The first work for mining sequential patterns, which is based on a C-MAP structure.
+- **TargetUM**: A tree-based algorithm known as Target-based high-Utility iteMset querying using is proposed. The algorithm uses a lexicographic querying tree and three effective pruning strategies to improve the mining efficiency.
+- **TaSPM**:  A generic algorithm namely TaSPM, based on the fast CM-SPAM algorithm. The idea of it is based on the bitmap comparison.
 - **TaSRM**: Several pruning strategies and an optimization are introduced to improve the efficiency of mining target sequential rules.
 - **TUSQ**: The first work for mining sequential patterns, which is based on a target chain structure.
 - **TALENT**: The algorithm based on Nettree structure is designed to mine non-overlapping sequences. Two search methods including breadth-first and depth-first searching are proposed to troubleshoot the generation of patterns.
