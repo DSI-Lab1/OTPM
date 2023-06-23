@@ -18,26 +18,12 @@ A simple way is to run the java test file.
 - **TaSRM**: Several pruning strategies and an optimization are introduced to improve the efficiency of mining target sequential rules.
 - **TUSQ**: The algorithm is based on two novel upper bounds (suffix remain utility and terminated descendants utility) as well as a vertical last instance table. For further efficiency, TUSQ relies on a projection technology utilizing a compact data structure called the targeted chain. 
 - **TALENT**: The algorithm based on Nettree structure is designed to mine non-overlapping sequences. Two search methods including breadth-first and depth-first searching are proposed to troubleshoot the generation of patterns.
-- **TaRP**: The first work for mining rare high-utility patterns, which is based on a modified utility-list structure.
-- **THUIM**: The improved work for mining high-utility itemsets, with the better efficiency than TargetUM.
-- **TMKU**: The work for top-k mining high-utility itemsets.
+- **TaRP**: The first work for mining rare target high-utility patterns, which is based on a modified utility-list structure.
+- **THUIM**: The improved work for mining target high-utility itemsets, with the better efficiency than TargetUM.
+- **ITUS**: The work for mining target high-utility seuqneces from dynamic data.
 
 ## Citation
-If these articles or codes useful for your project, please refer to
-```xml
-TargetUM:
-@article{miao2022targetum,
-	title={Targeted high-utility itemset querying},
-	author={Miao, Jinbao and Wan, Shicheng and Gan, Wensheng and Sun, Jiayi and Chen, Jiahui},
-	journal={IEEE Transactions on Artificial Intelligence}, 
-	volume={},  
-	number={},  
-	pages={1-13},
-	year={2022},
-	publisher={IEEE}
-}
-```
-
+If these papers or code are useful for your project, please cite the relevant papers.
 
 ## Notes
-If there are any questions, please contact me (osjbmiao@gmail.com).
+If there are any questions, please contact us.
