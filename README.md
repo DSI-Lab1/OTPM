@@ -48,5 +48,15 @@ If these papers or code are useful for your project, please cite the relevant pa
   publisher={IEEE}
 }
 
+@inproceedings{zhang2022targeted,
+  title={Targeted mining of rare high-utility patterns},
+  author={Zhang, Peifeng and Chen, Jiahui and Wan, Shicheng and Gan, Wensheng},
+  booktitle={The IEEE International Conference on Big Data},
+  pages={6271--6280},
+  year={2022},
+  organization={IEEE}
+}
+```xml
+
 ## Notes
 If there are any questions, please contact us.
