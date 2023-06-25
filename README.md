@@ -27,6 +27,26 @@ Other types of data will be supported in future work.
 
 ## Citation
 If these papers or code are useful for your project, please cite the relevant papers.
+```xml
+@inproceedings{miao2021targeted,
+  title={Targeted high-utility itemset querying},
+  author={Miao, Jinbao and Wan, Shicheng and Gan, Wensheng and Sun, Jiayi and Chen, Jiahui},
+  booktitle={The IEEE International Conference on Big Data},
+  pages={5534--5543},
+  year={2021},
+  organization={IEEE}
+}
+
+@article{zhang2022tusq,
+  title={{TUSQ}: Targeted high-utility sequence querying},
+  author={Zhang, Chunkai and Dai, Quanjian and Du, Zilin and Gan, Wensheng and Weng, Jian and Yu, Philip S.},
+  journal={IEEE Transactions on Big Data},
+  volume={9},
+  number={2},
+  pages={512--527},
+  year={2022},
+  publisher={IEEE}
+}
 
 ## Notes
 If there are any questions, please contact us.
