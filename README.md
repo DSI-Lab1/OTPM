@@ -37,15 +37,29 @@ If these papers or code are useful for your project, please cite the relevant pa
   organization={IEEE}
 }
 
+@article{huang2022taspm,
+  title={{TaSPM}: Targeted sequential pattern mining},
+  author={Huang, Gengsen and Gan, Wensheng and Yu, Philip S},
+  journal={arXiv preprint arXiv:2202.13202},
+  year={2022}
+}
+
 @article{zhang2022tusq,
   title={{TUSQ}: Targeted high-utility sequence querying},
-  author={Zhang, Chunkai and Dai, Quanjian and Du, Zilin and Gan, Wensheng and Weng, Jian and Yu, Philip S.},
+  author={Zhang, Chunkai and Dai, Quanjian and Du, Zilin and Gan, Wensheng and Weng, Jian and Yu, Philip S},
   journal={IEEE Transactions on Big Data},
   volume={9},
   number={2},
   pages={512--527},
   year={2022},
   publisher={IEEE}
+}
+
+@article{chen2023talent,
+  title={{TALENT}: Targeted mining of non-overlapping sequential patterns},
+  author={Chen, Zefeng and Gan, Wensheng and Huang, Gengsen and Qi, Zhenlian and Li, Yan and Yu, Philip S},
+  journal={arXiv preprint arXiv:2306.06470},
+  year={2023}
 }
 
 @inproceedings{zhang2022targeted,
@@ -56,7 +70,7 @@ If these papers or code are useful for your project, please cite the relevant pa
   year={2022},
   organization={IEEE}
 }
-```xml
+```
 
 ## Notes
 If there are any questions, please contact us.
