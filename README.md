@@ -12,6 +12,7 @@ Java programming language.
 - Sequence data
 - Transaction data
 - Biological sequence
+  
 Other types of data will be supported in future work.
 
 ## Introduction
