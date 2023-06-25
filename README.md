@@ -5,12 +5,14 @@ As an important sub-branch of data mining, pattern mining is nowadays applied in
 Java programming language.
 
 ## Running the program
-A simple way is to run the java test file.
+- A simple way is to run java test files using Java development tools (e.g., IntelliJ IDEA and Eclipse).
+- You can also run the jar package by executing the Java Command Line.
 
 ## Benchmarks
 - Sequence data
 - Transaction data
 - Biological sequence
+Other types of data will be supported in future work.
 
 ## Introduction
 - **TargetUM**: A tree-based algorithm known as Target-based high-Utility iteMset querying using is proposed. The algorithm uses a lexicographic querying tree and three effective pruning strategies to improve the mining efficiency.
